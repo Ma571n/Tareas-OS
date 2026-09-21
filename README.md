@@ -2,7 +2,7 @@ El Planificador Dieciochero UYUI
 
 Integrantes
 Matias Ignacio Neira Guzman - 21.854.181-K
-Martin Alejando Mondaca Labarca - (se me olvido tu rut)
+Martin Alejando Mondaca Labarca - 22.086.209-7
 
 Se siguio esta estructura para el Proyecto:
 
