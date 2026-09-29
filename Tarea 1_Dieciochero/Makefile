@@ -1,17 +1,25 @@
-# Compilador y banderas exigidas en la tarea
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c17
+CFLAGS = -Wall -Wextra -std=c17 -Irecetas
 
-# Archivos fuente de tu proyecto
-FUENTES = main.c parrilla/anticucho.c
+SRCS = main.c parrilla/anticucho.c
+OBJS = $(SRCS:.c=.o)
+TARGET = planificador
 
-# Nombre del archivo ejecutable que queremos crear
-EJECUTABLE = planificador
+# compilar todo el proyecto
+all: $(TARGET)
 
-# Regla principal: cómo compilar
-$(EJECUTABLE): $(FUENTES)
-	$(CC) $(CFLAGS) $(FUENTES) -o $(EJECUTABLE)
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
 
-# Regla para limpiar (borrar) el ejecutable generado
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# atajo pa probar de una con el plan.txt y K=3
+run: $(TARGET)
+	./$(TARGET) plan.txt 3
+
+# borro los .o y el ejecutable pa dejar limpia la carpeta
 clean:
-	rm -f $(EJECUTABLE)
+	rm -f parrilla/*.o *.o $(TARGET)
+
+.PHONY: all run clean

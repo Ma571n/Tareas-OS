@@ -1,27 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "recetas/anticucho.h"
+#include "recetas/empanada_pino.h"
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        printf("Error de uso. Formato correcto: %s <archivo_plan.txt> <K>\n", argv[0]);
+        fprintf(stderr, "Uso: %s <plan.txt> <K>\n", argv[0]);
         return 1;
     }
 
     char *archivo_plan = argv[1];
     int limite_k = atoi(argv[2]);
-    
-    FILE *archivo = fopen("plan.txt","r");
-    char linea[256];
-    while(fgets(linea, sizeof(linea), archivo) != NULL){
-        printf("Leí esta linea: %s", linea);
+
+    if (limite_k <= 0) {
+        fprintf(stderr, "Error: El K tiene que ser un numero mayor a 0 po.\n");
+        return 1;
     }
-    fclose(archivo);
 
+    printf("Iniciando la fonda...\n");
+    printf("Plan: %s | Concurrencia (K): %d\n", archivo_plan, limite_k);
 
-    printf("Iniciando planificador...\n");
-    printf("Archivo a cargar: %s\n", archivo_plan);
-    printf("Límite de concurrencia (K): %d\n", limite_k);
-    
+    // Cargar y procesar el plan
+    Grafo *g = picar_pino_plan(archivo_plan);
+    if (!g) {
+        fprintf(stderr, "Error: No se pudo cargar el archivo del plan.\n");
+        return 1;
+    }
+
+    liberar_grafo(g);
     return 0;
 }
