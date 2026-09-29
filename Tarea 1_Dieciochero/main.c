@@ -29,14 +29,31 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // si el plan no traia tareas no seguimos ejecucion
+    if (g->total_actividades == 0) {
+        fprintf(stderr, "Error: El archivo del plan esta vacio o con formato malo.\n");
+        liberar_grafo(g);
+        return 1;
+    }
+
     // Mostramos que leyo la wea bien
     printf("--- Tareas Cargadas en el Grafo (%d) ---\n", g->total_actividades);
     for (int i = 0; i < g->total_actividades; i++) {
-        printf("[%s] %s | Tiempo: %d ms | Deps restantes: %d\n",
+        printf("[%s] %s | Tiempo: %d ms | Deps (%d): ",
                g->actividades[i].id,
                g->actividades[i].nombre,
                g->actividades[i].tiempo_ms,
-               g->actividades[i].dependencias_restantes);
+               g->actividades[i].num_dependencias);
+
+        // mostramos las dependencias una por una pa ver si las saco bien
+        if (g->actividades[i].num_dependencias == 0) {
+            printf("Ninguna");
+        } else {
+            for (int j = 0; j < g->actividades[i].num_dependencias; j++) {
+                printf("%s ", g->actividades[i].dependencias_ids[j]);
+            }
+        }
+        printf("\n");
     }
 
     liberar_grafo(g);
