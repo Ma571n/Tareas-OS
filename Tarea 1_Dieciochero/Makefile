@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c17 -Irecetas
 
-SRCS = main.c parrilla/anticucho.c
+SRCS = main.c parrilla/anticucho.c parrilla/empanada_pino.c
 OBJS = $(SRCS:.c=.o)
 TARGET = planificador
 
