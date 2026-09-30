@@ -232,8 +232,9 @@ static void ejecutar_hijo(Grafo *g, Actividad *act, int fd_insumos, int fd_resul
     // 2) Simula la pega
     dormir_ms(act->tiempo_ms);
 
-    // 3) Si le tocaba fallar sale con error
-    if (act->simular_falla) _exit(2);
+    // 3) Si le tocaba fallar: 1 = sale con error, 2 = muere por una senal
+    if (act->simular_falla == 1) _exit(2);
+    if (act->simular_falla == 2) raise(SIGKILL);
 
     // 4) Le avisa al papa que termine
     char msg[MSG_MAX];
@@ -320,7 +321,7 @@ static int lanzar_actividad(Grafo *g, int idx) {
 }
 
 // funcion principal pa correr la parrilla
-int prender_parrilla(Grafo *g, int K) {
+int prender_parrilla(Grafo *g, int K, double prob_falla) {
     int total = g->total_actividades;
     le_cayo_la_seremi = 0;
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -372,8 +373,6 @@ int prender_parrilla(Grafo *g, int K) {
 
     // reviso env pa fallas simuladas
     const char *lista_fallas = getenv("FALLAR");
-    const char *pct_txt = getenv("FALLA_PCT");
-    int pct_falla = pct_txt ? atoi(pct_txt) : 0;
 
     for (int i = 0; i < total; i++) {
         if (g->actividades[i].dependencias_restantes == 0) cola[fin_cola++] = i;
@@ -382,6 +381,7 @@ int prender_parrilla(Grafo *g, int K) {
     printf("\n=== COMIENZA LA FIESTA (K=%d, actividades=%d) ===\n\n", K, total);
 
     int error_interno = 0;
+    int fallas_propias = 0;
     while (!le_cayo_la_seremi) {
         revisar_seremi();
         if (le_cayo_la_seremi) break;
@@ -390,8 +390,11 @@ int prender_parrilla(Grafo *g, int K) {
         while (corriendo < K && cab < fin_cola && !le_cayo_la_seremi) {
             int i = cola[cab];
             Actividad *act = &g->actividades[i];
-            act->simular_falla = id_en_lista(lista_fallas, act->id) ||
-                                 (pct_falla > 0 && (rand() % 100) < pct_falla);
+            act->simular_falla = id_en_lista(lista_fallas, act->id);
+            if (!act->simular_falla && prob_falla > 0.0 &&
+                (double)rand() / ((double)RAND_MAX + 1.0) * 100.0 < prob_falla) {
+                act->simular_falla = 1 + rand() % 2; // error de salida o senal
+            }
 
             printf("[LANZANDO] [%s] %s (%d ms)...\n", act->id, act->nombre, act->tiempo_ms);
             cant_en_fierro = corriendo;
@@ -405,6 +408,7 @@ int prender_parrilla(Grafo *g, int K) {
                 cab++;
                 act->estado = TA_QUEMAO;
                 printf("[ERROR] No se pudo lanzar [%s] %s\n", act->id, act->nombre);
+                fallas_propias++;
                 quemar_rama(g, i);
             }
             revisar_seremi();
@@ -465,6 +469,7 @@ int prender_parrilla(Grafo *g, int K) {
             }
         } else {
             act->estado = TA_QUEMAO;
+            fallas_propias++;
             if (WIFSIGNALED(status)) {
                 printf("[QUEMAO] [%s] %s -- FALLO (senal %d)\n", act->id, act->nombre, WTERMSIG(status));
             } else {
@@ -503,6 +508,11 @@ int prender_parrilla(Grafo *g, int K) {
                 break;
             }
         }
+
+        // las que no alcanzaron a partir tambien quedan abortadas
+        for (int i = 0; i < total; i++) {
+            if (g->actividades[i].estado == TA_CRUDO) g->actividades[i].estado = TA_QUEMAO;
+        }
     }
 
     sigprocmask(SIG_SETMASK, &mascara_original, NULL);
@@ -521,6 +531,10 @@ int prender_parrilla(Grafo *g, int K) {
         }
     }
     printf("Completadas: %d | Fallidas/Canceladas: %d | Sin ejecutar: %d\n", ok, fail, pendientes);
+    if (fail > 0 && !le_cayo_la_seremi) {
+        printf("Fallaron por si solas: %d | Canceladas por depender de una que fallo: %d\n",
+               fallas_propias, fail - fallas_propias);
+    }
 
     if (le_cayo_la_seremi) return 130;
 

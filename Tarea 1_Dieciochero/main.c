@@ -8,8 +8,8 @@
 int main(int argc, char *argv[]) {
     srand((unsigned)time(NULL)); // semilla para los tiempos aleatorios
 
-    if (argc != 3) {
-        fprintf(stderr, "Uso: %s <plan.txt> <K>\n", argv[0]);
+    if (argc != 3 && argc != 4) {
+        fprintf(stderr, "Uso: %s <plan.txt> <K> [prob_fallo_%%]\n", argv[0]);
         return 1;
     }
 
@@ -22,8 +22,22 @@ int main(int argc, char *argv[]) {
     }
     int limite_k = (int)k_leido;
 
+    // probabilidad de fallo opcional: tercer argumento o variable FALLA_PCT
+    double prob_falla = 0.0;
+    const char *txt_prob = (argc == 4) ? argv[3] : getenv("FALLA_PCT");
+    if (txt_prob) {
+        char *fin;
+        prob_falla = strtod(txt_prob, &fin);
+        if (fin == txt_prob || *fin != '\0' || prob_falla < 0.0 || prob_falla > 100.0) {
+            fprintf(stderr, "Error: la probabilidad de fallo tiene que estar entre 0 y 100.\n");
+            return 1;
+        }
+    }
+
     printf("Iniciando la fonda...\n");
-    printf("Plan: %s | Concurrencia (K): %d\n\n", archivo_plan, limite_k);
+    printf("Plan: %s | Concurrencia (K): %d\n", archivo_plan, limite_k);
+    if (prob_falla > 0.0) printf("Probabilidad de fallo por actividad: %.1f%%\n", prob_falla);
+    printf("\n");
 
     Grafo *g = picar_pino_plan(archivo_plan);
     if (!g) {
@@ -59,7 +73,7 @@ int main(int argc, char *argv[]) {
     }
 
     // se prende la parrilla (motor de ejecucion)
-    int resultado = prender_parrilla(g, limite_k);
+    int resultado = prender_parrilla(g, limite_k, prob_falla);
 
     liberar_grafo(g);
     return resultado;
