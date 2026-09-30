@@ -1,0 +1,4 @@
+# el tiempo vacio no debe correr las dependencias
+a : uno : 50 :
+b : dos :  : a
+c : tres :: [a, b]
